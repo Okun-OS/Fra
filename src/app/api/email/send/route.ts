@@ -3,6 +3,38 @@ import { google } from "googleapis";
 import { getOAuthClient } from "@/lib/google";
 import { db } from "@/lib/db";
 
+function stripHtml(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .trim();
+}
+
+async function fetchGmailSignature(
+  gmail: ReturnType<typeof google.gmail>,
+  senderEmail: string
+): Promise<string> {
+  try {
+    const res = await gmail.users.settings.sendAs.list({ userId: "me" });
+    const sendAsEntries = res.data.sendAs ?? [];
+    const match =
+      sendAsEntries.find((s) => s.sendAsEmail?.toLowerCase() === senderEmail.toLowerCase()) ??
+      sendAsEntries.find((s) => s.isDefault) ??
+      sendAsEntries[0];
+
+    if (!match?.signature) return "";
+    return stripHtml(match.signature);
+  } catch {
+    return "";
+  }
+}
+
 // POST /api/email/send
 // body: { slot, to, subject, body, taskId }
 export async function POST(request: NextRequest) {
@@ -27,13 +59,18 @@ export async function POST(request: NextRequest) {
 
   const gmail = google.gmail({ version: "v1", auth: oauth2Client });
 
+  // Fetch signature and append if present
+  const signature = await fetchGmailSignature(gmail, config.email);
+  const fullBody = signature ? `${body}\n\n-- \n${signature}` : body;
+
   // Encode email as RFC 2822
   const emailLines = [
+    `From: ${config.email}`,
     `To: ${to}`,
     `Subject: ${subject}`,
     `Content-Type: text/plain; charset=utf-8`,
     ``,
-    body,
+    fullBody,
   ];
   const raw = Buffer.from(emailLines.join("\r\n"))
     .toString("base64")
@@ -46,13 +83,11 @@ export async function POST(request: NextRequest) {
     requestBody: { raw },
   });
 
-  // Mark task as done if taskId provided
   if (taskId) {
     await db.task.update({
       where: { id: taskId },
       data: { status: "done", completedAt: new Date() },
     });
-    // Mark thread as replied
     await db.emailThread.updateMany({
       where: { taskId },
       data: { hasPendingReply: false, isRead: true },
