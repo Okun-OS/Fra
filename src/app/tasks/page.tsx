@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/input";
 import { TaskCard } from "@/components/tasks/TaskCard";
+import { TaskDetailPanel } from "@/components/tasks/TaskDetailPanel";
 import { Plus, X, SlidersHorizontal } from "lucide-react";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -178,6 +179,7 @@ function CreateTaskModal({ onClose, onCreated }: { onClose: () => void; onCreate
 export default function TasksPage() {
   const [filters, setFilters] = useState({ status: "open", source: "all", category: "all", q: "" });
   const [creating, setCreating] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   const query = new URLSearchParams(
     Object.fromEntries(Object.entries(filters).filter(([, v]) => v))
@@ -268,12 +270,25 @@ export default function TasksPage() {
           </div>
         )}
         {tasks?.map((task) => (
-          <TaskCard key={task.id} task={task} onComplete={handleComplete} />
+          <TaskCard
+            key={task.id}
+            task={task}
+            onComplete={handleComplete}
+            onClick={(t) => setSelectedTask(t as Task)}
+          />
         ))}
       </div>
 
       {creating && (
         <CreateTaskModal onClose={() => setCreating(false)} onCreated={() => mutate()} />
+      )}
+
+      {selectedTask && (
+        <TaskDetailPanel
+          task={selectedTask}
+          onClose={() => setSelectedTask(null)}
+          onComplete={(id) => { handleComplete(id); setSelectedTask(null); }}
+        />
       )}
     </div>
   );
