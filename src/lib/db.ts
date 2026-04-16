@@ -7,9 +7,15 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrisma() {
-  const adapter = new PrismaLibSql({
-    url: `file:${path.join(process.cwd(), "prisma/frank.db")}`,
-  });
+  // Production: use DATABASE_URL env var (e.g. Turso: libsql://...)
+  // Development: local SQLite file
+  const url =
+    process.env.DATABASE_URL ??
+    `file:${path.join(process.cwd(), "prisma/frank.db")}`;
+
+  const authToken = process.env.DATABASE_AUTH_TOKEN;
+
+  const adapter = new PrismaLibSql({ url, ...(authToken ? { authToken } : {}) });
   return new PrismaClient({ adapter } as ConstructorParameters<typeof PrismaClient>[0]);
 }
 
