@@ -1,6 +1,5 @@
--- CreateTable
 CREATE TABLE "Task" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "description" TEXT,
     "status" TEXT NOT NULL DEFAULT 'open',
@@ -10,98 +9,93 @@ CREATE TABLE "Task" (
     "sourceId" TEXT,
     "sourceUrl" TEXT,
     "sourceRef" TEXT,
-    "dueDate" DATETIME,
-    "scheduledFor" DATETIME,
+    "dueDate" TIMESTAMP(3),
+    "scheduledFor" TIMESTAMP(3),
     "isToday" BOOLEAN NOT NULL DEFAULT false,
     "daySlot" TEXT,
     "isFollowUp" BOOLEAN NOT NULL DEFAULT false,
-    "followUpDate" DATETIME,
+    "followUpDate" TIMESTAMP(3),
     "followUpContact" TEXT,
     "revenueImpact" TEXT,
     "effort" TEXT,
     "tags" TEXT NOT NULL DEFAULT '[]',
     "clientName" TEXT,
     "clientId" TEXT,
-    "completedAt" DATETIME,
-    "snoozedUntil" DATETIME,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "completedAt" TIMESTAMP(3),
+    "snoozedUntil" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "Task_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "EmailThread" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "threadId" TEXT NOT NULL,
     "subject" TEXT NOT NULL,
     "fromEmail" TEXT NOT NULL,
     "fromName" TEXT,
     "toEmails" TEXT NOT NULL,
     "snippet" TEXT,
-    "lastMessageAt" DATETIME NOT NULL,
+    "lastMessageAt" TIMESTAMP(3) NOT NULL,
     "messageCount" INTEGER NOT NULL DEFAULT 1,
     "hasPendingReply" BOOLEAN NOT NULL DEFAULT false,
     "isRead" BOOLEAN NOT NULL DEFAULT true,
     "labels" TEXT NOT NULL DEFAULT '[]',
     "taskId" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "EmailThread_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "Task" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "EmailThread_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "DayPlan" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "date" TEXT NOT NULL,
     "nowTaskIds" TEXT NOT NULL DEFAULT '[]',
     "laterTaskIds" TEXT NOT NULL DEFAULT '[]',
     "skipTaskIds" TEXT NOT NULL DEFAULT '[]',
     "aiSummary" TEXT,
     "aiRecommendations" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "DayPlan_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "Integration" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "type" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "displayName" TEXT NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT false,
     "config" TEXT NOT NULL DEFAULT '{}',
-    "lastSyncedAt" DATETIME,
+    "lastSyncedAt" TIMESTAMP(3),
     "lastSyncStatus" TEXT,
     "lastSyncMessage" TEXT,
     "itemCount" INTEGER NOT NULL DEFAULT 0,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "Integration_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "FrankSession" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "date" TEXT NOT NULL,
     "briefing" TEXT,
     "recommendations" TEXT,
     "context" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "FrankSession_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "Setting" (
-    "key" TEXT NOT NULL PRIMARY KEY,
+    "key" TEXT NOT NULL,
     "value" TEXT NOT NULL,
-    "updatedAt" DATETIME NOT NULL
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "Setting_pkey" PRIMARY KEY ("key")
 );
 
--- CreateIndex
 CREATE UNIQUE INDEX "EmailThread_threadId_key" ON "EmailThread"("threadId");
-
--- CreateIndex
 CREATE UNIQUE INDEX "EmailThread_taskId_key" ON "EmailThread"("taskId");
-
--- CreateIndex
 CREATE UNIQUE INDEX "DayPlan_date_key" ON "DayPlan"("date");
-
--- CreateIndex
 CREATE UNIQUE INDEX "Integration_type_key" ON "Integration"("type");
+
+ALTER TABLE "EmailThread" ADD CONSTRAINT "EmailThread_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "Task"("id") ON DELETE SET NULL ON UPDATE CASCADE;
