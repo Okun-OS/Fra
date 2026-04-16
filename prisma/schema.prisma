@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  status      String   @default("open") // open | in_progress | done | snoozed | cancelled
+  priority    Int      @default(50)     // 0-100, higher = more urgent
+  category    String   @default("admin") // delivery | sales | system | admin | vision
+  source      String   @default("manual") // manual | email | okunos | portal
+  sourceId    String?
+  sourceUrl   String?
+  sourceRef   String?
+
+  dueDate     DateTime?
+  scheduledFor DateTime?
+  isToday     Boolean  @default(false)
+  daySlot     String?  // now | later | skip
+
+  isFollowUp  Boolean  @default(false)
+  followUpDate DateTime?
+  followUpContact String?
+
+  revenueImpact String? // high | medium | low | none
+  effort        String? // quick | medium | heavy
+  tags          String  @default("[]") // JSON array
+
+  clientName  String?
+  clientId    String?
+
+  completedAt DateTime?
+  snoozedUntil DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  emailThread EmailThread?
+}
+
+model EmailThread {
+  id              String   @id @default(cuid())
+  threadId        String   @unique
+  subject         String
+  fromEmail       String
+  fromName        String?
+  toEmails        String   // JSON array
+  snippet         String?
+  lastMessageAt   DateTime
+  messageCount    Int      @default(1)
+  hasPendingReply Boolean  @default(false)
+  isRead          Boolean  @default(true)
+  labels          String   @default("[]") // JSON array
+
+  taskId  String? @unique
+  task    Task?   @relation(fields: [taskId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DayPlan {
+  id          String   @id @default(cuid())
+  date        String   @unique // YYYY-MM-DD
+  nowTaskIds  String   @default("[]")  // JSON array of task ids
+  laterTaskIds String  @default("[]")
+  skipTaskIds  String  @default("[]")
+  aiSummary   String?
+  aiRecommendations String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Integration {
+  id          String   @id @default(cuid())
+  type        String   @unique // email_1 | email_2 | email_3 | okunos | portal
+  name        String
+  displayName String
+  isActive    Boolean  @default(false)
+  config      String   @default("{}") // JSON: endpoint, apiKey slot names etc
+  lastSyncedAt DateTime?
+  lastSyncStatus String? // ok | error | pending
+  lastSyncMessage String?
+  itemCount   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model FrankSession {
+  id              String   @id @default(cuid())
+  date            String   // YYYY-MM-DD
+  briefing        String?
+  recommendations String?
+  context         String?  // JSON: stats snapshot
+  createdAt       DateTime @default(now())
+}
+
+model Setting {
+  key       String @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
